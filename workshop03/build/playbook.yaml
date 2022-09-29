@@ -1,0 +1,70 @@
+- name: Install code-server
+  hosts: all
+  vars:
+    codeserver_archive: "https://github.com/coder/code-server/releases/download/v{{ cs_version }}/code-server-{{ cs_version }}-linux-amd64.tar.gz"
+    codeserver_dir: code-server-{{ cs_version }}-linux-amd64
+    download_dir: /usr/local/opt
+    new_dir:
+    - "{{ download_dir }}"
+    - '/var/lib/code-server'
+  tasks:
+  - name: Create directory 
+    file:
+      path: "{{ item }}"
+      state: directory
+    loop: "{{ new_dir }}"
+  - name: Check if archive exists
+    stat:
+      path: "{{ download_dir }}/{{ codeserver_dir }}"
+    register: cs_archive
+  - name: Download and untar archive
+    unarchive:
+      src: "{{ codeserver_archive }}"
+      dest: "{{ download_dir }}"
+      remote_src: true
+    when: not cs_archive.stat.exists
+  - name: Create symbolic link 1
+    file:
+      src: '/usr/local/opt/code-server-{{ cs_version }}-linux-amd64'
+      dest: '/usr/lib/code-server'
+      state: link
+  - name: Create symbolic link 2
+    file:
+      src: '/usr/lib/code-server/bin/code-server'
+      dest: '/usr/bin/code-server'
+      state: link
+  - name: Generate the codeserver.service file
+    template:
+      src: ./code-server.service.j2
+      dest: /lib/systemd/system/code-server.service
+      mode: '0400'
+  - name: Daemon reload
+    ansible.builtin.systemd:
+      daemon_reload: yes
+      enabled: yes
+      state: restarted
+      name: code-server
+
+- name: Install nginx
+  hosts: all
+  tasks:
+  - name: Install nginx
+    apt:
+      name: "nginx"
+      update_cache: true
+      state: "latest"
+  - name: Generate codeserver.conf
+    template:
+      src: ./code-server.conf.j2
+      dest: /etc/nginx/sites-available/code-server.conf
+  - name: Create symbolic link
+    file:
+      src: '/etc/nginx/sites-available/code-server.conf'
+      dest: '/etc/nginx/sites-enabled/code-server.conf'
+      state: link
+  - name: Start nginx
+    ansible.builtin.systemd:
+      daemon_reload: true
+      enabled: true
+      state: restarted
+      name: nginx

@@ -1,0 +1,22 @@
+- name: Generate the codeserver.service
+  hosts: all
+  tasks:
+  - name: Generate the codeserver.service
+    template:
+      src: ./code-server.service.j2
+      dest: /lib/systemd/system/code-server.service
+      mode: '0400'
+
+- name: Generate codeserver.conf
+  hosts: all
+  tasks:
+  - name: Generate codeserver.conf
+    template:
+      src: ./code-server.conf.j2
+      dest: /etc/nginx/sites-available/code-server.conf
+  - name: Restart nginx
+    ansible.builtin.systemd:
+      daemon_reload: true
+      enabled: true
+      state: restarted
+      name: nginx

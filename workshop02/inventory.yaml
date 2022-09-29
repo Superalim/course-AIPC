@@ -1,0 +1,10 @@
+all:
+  vars:
+    ansible_connection: ssh
+    ansible_user: root
+    ansible_ssh_private_key_file: default
+  hosts:
+    codeserver:
+      ansible_host: 174.138.31.240
+      codeserver_domain: codeserver-174.138.31.240.nip.io
+      codeserver_password: hello,world
